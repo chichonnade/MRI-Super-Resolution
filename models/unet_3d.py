@@ -28,14 +28,16 @@ class AttentionBlock(nn.Module):
 
     def forward(self, x):
         b, c, d, h, w = x.shape
+        x_orig = x  # Store original for residual connection
+        
         # Reshape x for multi-head attention (convert 3D to 2D)
-        x = x.view(b, c, -1).permute(0, 2, 1)  # (B, D*H*W, C)
+        x_reshaped = x.view(b, c, -1).permute(0, 2, 1)  # (B, D*H*W, C)
         # Apply attention
-        attn_output, _ = self.attention(x, x, x)
+        attn_output, _ = self.attention(x_reshaped, x_reshaped, x_reshaped)
         # Reshape back to the original 3D shape
         attn_output = attn_output.permute(0, 2, 1).view(b, c, d, h, w)
         # Add the attention output to the original input (residual connection) and normalize
-        return self.norm(attn_output + x)
+        return self.norm(attn_output + x_orig)
 
 # Define a downsampling block for the encoder path
 class DownBlock(nn.Module):
@@ -72,16 +74,17 @@ class UpBlock(nn.Module):
         self.conv2 = ConvBlock(out_channels, out_channels)
         # Attention block
         self.attention = AttentionBlock(out_channels, num_heads=8)
-        # Residual connection
-        self.residual = nn.Conv3d(in_channels, out_channels, kernel_size=1)
+        # Residual connection for the final output
+        self.residual = nn.Conv3d(out_channels, out_channels, kernel_size=1)
 
     def forward(self, x, skip):
-        res = self.residual(x)
         x = self.upconv(x)
         # Concatenate the skip connection from the encoder path
         x = torch.cat([x, skip], dim=1)
         x = self.conv1(x)
         x = self.conv2(x)
+        # Store for residual connection
+        res = self.residual(x)
         x = self.attention(x)
         # Add the residual connection
         x = x + res
@@ -133,6 +136,9 @@ class UNet3D(nn.Module):
         self.final_conv = nn.Conv3d(16, 1, kernel_size=1)
 
     def forward(self, x):
+        # Store original input for skip connections
+        x_orig = x
+        
         # Forward pass through the encoder path
         d1 = self.down1(x)
         d2 = self.down2(d1)
@@ -147,8 +153,15 @@ class UNet3D(nn.Module):
         u2 = self.up2(u1, d3)
         u3 = self.up3(u2, d2)
         u4 = self.up4(u3, d1)
-        u5 = self.up5(u4, d1)  # Additional upsampling
-        u6 = self.up6(u5, d1)  # Final upsampling
+        
+        # For additional upsampling, we'll use upsampled versions of earlier features
+        # Upsample d1 to match u4 spatial dimensions for u5
+        d1_up = F.interpolate(d1, size=u4.shape[2:], mode='trilinear', align_corners=False)
+        u5 = self.up5(u4, d1_up)
+        
+        # Upsample original input to match u5 spatial dimensions for u6
+        x_up = F.interpolate(x_orig, size=u5.shape[2:], mode='trilinear', align_corners=False)
+        u6 = self.up6(u5, x_up)
 
         # Final convolution to produce the output
         out = self.final_conv(u6)

@@ -1,0 +1,41 @@
+{
+    "name": "MRI_SuperResolution_UNet3D",
+    "phase": "train",
+    "gpu_ids": [0],
+    "path": {
+        "log": "logs",
+        "tb_logger": "logs/tb_logger",
+        "results": "results",
+        "resume_state": null
+    },
+    "datasets": {
+        "train": {
+            "lr_dir": "data/train/low_res",
+            "hr_dir": "data/train/high_res",
+            "batch_size": 2,
+            "num_workers": 4
+        },
+        "val": {
+            "lr_dir": "data/val/low_res",
+            "hr_dir": "data/val/high_res",
+            "batch_size": 1,
+            "num_workers": 1
+        }
+    },
+    "model": {
+        "name": "UNet3D"
+    },
+    "train": {
+        "n_iter": 100000,
+        "print_freq": 100,
+        "val_freq": 1000,
+        "save_checkpoint_freq": 5000,
+        "lr": 1e-4
+    },
+    "enable_wandb": false,
+    "log_wandb_ckpt": false,
+    "log_eval": false,
+    "wandb_project": "mri-super-resolution",
+    "wandb_run_name": null,
+    "wandb_resume": false
+} 

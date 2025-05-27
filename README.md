@@ -59,10 +59,8 @@ This repository focuses on enhancing the resolution from 1.5T to 3T MRI scans. B
 
 - **models/**: Contains the model definitions.
   - `Unet_PyTorch.py`: 3D-Unet implementation in PyTorch.
-  - `Unet_JAX.py`: 3D-Unet implementation in JAX.
 
 - **training/**: Contains training scripts.
-  - `train_jax.py`: Script for training the model using JAX.
   - `train_pytorch.py`: Script for training the model using PyTorch.
 
 - **utils/**: Utility scripts and notebooks for data processing, model training, and visualization.
@@ -100,10 +98,10 @@ To set up the environment for this project:
 
 Instructions on how to run the notebooks, train models, and process the MRI data:
 
-1. **Training the Model with JAX:**
-   - Use `train_jax.py` to train the 3D-Unet model with JAX.
+1. **Training the Model**
+   - Use `train_PyTorch.py` to train the 3D-Unet model
    ```bash
-   python training/train_jax.py
+   python training/train_PyTorch.py
 2. **Visualization:**
    Run `plot_t1w.py` to generate visualizations of T1-weighted MRI images.
 
